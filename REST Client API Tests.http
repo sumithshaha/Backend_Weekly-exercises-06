@@ -1,0 +1,191 @@
+### Environment Variables
+@baseUrl = http://localhost:3000
+@adminToken = {{loginAdmin.response.body.token}}
+@userToken = {{loginUser.response.body.token}}
+
+### Test Suite 1: User Authentication
+
+## Register a new regular user
+# @name registerUser
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "regsitereduser@example.com",
+    "password": "userpass123",
+    "role": "regular"
+}
+
+### Register an admin user
+# @name registerAdmin
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "admin@example.com",
+    "password": "adminpass123",
+    "role": "admin"
+}
+
+### Test registration validation - Missing required fields
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "invalid@example.com"
+}
+
+### Test registration validation - Invalid email format
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+    "email": "invalid-email",
+    "password": "password123"
+}
+
+### Login as regular user
+# @name loginUser
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "user@example.com",
+    "password": "password123"
+}
+
+### Login as admin
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@example.com",
+    "password": "adminpass123"
+}
+
+### Test login validation - Invalid credentials
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+    "email": "user@example.com",
+    "password": "wrongpassword"
+}
+
+### Test Suite 2: Event Management - Admin Operations
+
+### Create new event (as admin)
+# @name createEvent
+POST {{baseUrl}}/events
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "title": "Annual Tech Conference",
+    "date": "2024-06-15T09:00:00.000Z",
+    "location": "Convention Center"
+}
+
+### Create event validation - Missing required fields (as admin)
+POST {{baseUrl}}/events
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "title": "Incomplete Event"
+}
+
+### Update event (as admin)
+PUT {{baseUrl}}/events/{{createEvent.response.body._id}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "title": "Updated Tech Conference",
+    "date": "2024-06-16T09:00:00.000Z",
+    "location": "New Convention Center"
+}
+
+### Delete event (as admin)
+DELETE {{baseUrl}}/events/{{createEvent.response.body._id}}
+Authorization: Bearer {{adminToken}}
+
+### Test Suite 3: Event Management - Regular User Operations
+
+### Attempt to create event as regular user (should fail)
+POST {{baseUrl}}/events
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+    "title": "Unauthorized Event",
+    "date": "2024-07-01T10:00:00.000Z",
+    "location": "Secret Location"
+}
+
+### Get all events (as regular user)
+GET {{baseUrl}}/events
+Authorization: Bearer {{userToken}}
+
+### Get single event (as regular user)
+GET {{baseUrl}}/events/{{createEvent.response.body._id}}
+Authorization: Bearer {{userToken}}
+
+### Test Suite 4: Search and Filtering
+
+### Search events by title
+GET {{baseUrl}}/events?title=Tech
+Authorization: Bearer {{userToken}}
+
+### Filter events by date range
+GET {{baseUrl}}/events?startDate=2024-06-01T00:00:00.000Z&endDate=2024-06-30T23:59:59.999Z
+Authorization: Bearer {{userToken}}
+
+### Test Suite 5: Error Cases
+
+### Access with invalid token
+GET {{baseUrl}}/events
+Authorization: Bearer invalidtoken123
+
+### Access with no token
+GET {{baseUrl}}/events
+
+### Attempt to get non-existent event
+GET {{baseUrl}}/events/000000000000000000000000
+Authorization: Bearer {{userToken}}
+
+### Create event with invalid date format
+POST {{baseUrl}}/events
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "title": "Invalid Date Event",
+    "date": "not-a-date",
+    "location": "Somewhere"
+}
+
+### Test Suite 6: Boundary Cases
+
+### Create event with minimum allowed fields
+POST {{baseUrl}}/events
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "title": "x",
+    "date": "2024-12-31T23:59:59.999Z",
+    "location": "y"
+}
+
+### Create event with very long text fields
+POST {{baseUrl}}/events
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+    "title": "Very Long Title That Goes On And On And Might Exceed Database Limits Very Long Title That Goes On And On And Might Exceed Database Limits Very Long Title That Goes On And On And Might Exceed Database Limits",
+    "date": "2024-12-31T23:59:59.999Z",
+    "location": "Very Long Location Description That Goes On And On And Might Exceed Database Limits Very Long Location Description That Goes On And On And Might Exceed Database Limits"
+}
